@@ -16,8 +16,11 @@ Plan:
         -- това с average-тите
     * Ogi & Dobi
         -- task 1 
-        -- feature engineering
-        -- SA parts of speech  
+        -- feature engineering - tf-idf and LSA and phase generator
+        -- SA parts of speech
+		-- LDA
+		-- Classification - kernal SVM, KNN and NB
+		
 
 Сентимент анализис - да се генерират нови feature-и:
     - стандартни думи w2v думи от текста в речника
