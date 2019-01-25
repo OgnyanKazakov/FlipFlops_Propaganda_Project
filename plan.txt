@@ -1,0 +1,27 @@
+Plan:
+    * Paco
+        -- data prep for task 2 & 3
+        -- feature engineering (NRC, AFINN, BING)
+    * Nadeto
+        -- bags of words with different classifiers
+        -- tf-idf with regularizations 
+        -- Word Embeddings with Keras https://blogs.rstudio.com/tensorflow/posts/2017-12-22-word-embeddings-with-keras/
+        -- Deep Learning for Text Classification with Keras https://blogs.rstudio.com/tensorflow/posts/2017-12-07-text-classification-with-keras/
+    * Niki
+        -- Task 2 Word Embedding 
+        -- нещо по-сложно
+    * Vichko
+        -- LSTM  ще го приложа на първата и втората
+        -- CNN
+        -- това с average-тите
+    * Ogi & Dobi
+        -- task 1 
+        -- feature engineering
+        -- SA parts of speech  
+
+Сентимент анализис - да се генерират нови feature-и:
+    - стандартни думи w2v думи от текста в речника
+    https://www.tidytextmining.com/sentiment.html
+        - NRC  Lexicon [R]
+        - AFINN Lexicon [R]
+        - BING  Lexicon [R]
