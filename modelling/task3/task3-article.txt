@@ -1,0 +1,181 @@
+# Task 3
+
+## High Level Idea
+
+We are using deep Learning approach to clasify the text fragments for propaganda. The general approach is as follow:
+1. Split article per sentences
+2. Tokenize each word in the sentences
+3. Feed tokens in a sequential model by using pretrained word embedding model and get prediction for each token
+4. Consolidate results on article level
+
+The pros of this approach is that there are a lot of standard LSTM and CNN models for sentiment analysis of a text.
+Main challenges are coming from the data prep. On the pre-modeling prep converting text to tokens keeping their relative positions and outcome. This is crucial for cases when tokenizer is droping words of the sentence. On the post-modeling prep converting back results to text positions.
+
+## Considered scenarios
+
+We considered two scenarios for addressing the approach described above.
+
+### End-To-End modelling
+
+There are 18 kinds of propaganda, as follow:
+Appeal_to_Authority
+Appeal_to_fear-prejudice
+Bandwagon
+Black-and-White_Fallacy
+Causal_Oversimplification
+Doubt
+Exaggeration,Minimisation
+Flag-Waving
+Loaded_Language
+Name_Calling,Labeling
+Obfuscation,Intentional_Vagueness,Confusion
+Red_Herring
+Reductio_ad_hitlerum
+Repetition
+Slogans
+Straw_Men
+Thought-terminating_Cliches
+Whataboutism
+
+One idea is to use a multicatgorical classification for each token. There are 19 catogories - 18 propagandas and non-propaganda. Unfortunately, there is overlapping between the propaganda fragmnets, which means that some tokens could belong to a several categories simultaniously.
+
+Therefore, we decided to run a classification for each kind of proganda. Unfortunetly, as could be seen from the table below, not all of the propagandas are well populated.
+
+Loaded_Language 1627
+Name_Calling,Labeling   839
+Repetition  427
+Doubt   359
+Exaggeration,Minimisation   350
+Flag-Waving 182
+Appeal_to_fear-prejudice    162
+Causal_Oversimplification   133
+Slogans 110
+Black-and-White_Fallacy 83
+Appeal_to_Authority 81
+Thought-terminating_Cliches 57
+Whataboutism    52
+Reductio_ad_hitlerum    35
+Red_Herring 18
+Obfuscation,Intentional_Vagueness,Confusion 9
+Straw_Men   8
+Bandwagon   7
+
+Practically, we recieved a good models just for top 2 propagandas.
+
+### 2 Stage modelling.
+
+In order to be able to cover all kind of propaganda, we split the modelling tasks on 2 phases.
+Phase 1. Detect a propagandistic phrase.
+Phase 2. Clasify a propagandistic phrase.
+
+## Word embedding
+
+We used a pretrained Glove model on wikipedia corpus having 400k words in it. We tested different size of the vectors - 50, 100, 200 and 300. Based on the test we selected word embedidng of size 200.
+
+
+## Final model used
+
+On trainig side we considered two approaches - Biderectional LSTM models and 1D CNN models. We selected CNN models, because LSTM models are much slower on the hardware we used, therefore it took much more time for selecteding the appropriate network architecture and hyper parameters
+
+
+
+### Propaganda identification
+
+model = Sequential()
+model.add(Embedding(num_words, EMBEDDING_DIM, weights=[embedding_matrix], trainable=False))
+model.add(Conv1D(filters=LATENT_DIM, kernel_size=5, padding="same"))
+model.add(MaxPooling1D(pool_size=3, strides=1, padding="same"))
+model.add(Conv1D(filters=LATENT_DIM, kernel_size=4, padding="same"))
+model.add(MaxPooling1D(pool_size=4, strides=1, padding="same"))
+model.add(Conv1D(filters=LATENT_DIM, kernel_size=3, padding="same"))
+model.add(MaxPooling1D(pool_size=5, strides=1, padding="same"))
+model.add(TimeDistributed(Dense(20, activation="relu")))
+model.add(Dense(1, activation="sigmoid"))
+model.compile(
+  loss='binary_crossentropy',
+  optimizer=Adam(lr=0.01),
+  metrics=['accuracy']
+)
+
+Layer (type)                 Output Shape              Param #   
+=================================================================
+embedding_12 (Embedding)     (None, None, 200)         3786200   
+_________________________________________________________________
+conv1d_19 (Conv1D)           (None, None, 32)          32032     
+_________________________________________________________________
+max_pooling1d_15 (MaxPooling (None, None, 32)          0         
+_________________________________________________________________
+conv1d_20 (Conv1D)           (None, None, 32)          4128      
+_________________________________________________________________
+max_pooling1d_16 (MaxPooling (None, None, 32)          0         
+_________________________________________________________________
+conv1d_21 (Conv1D)           (None, None, 32)          3104      
+_________________________________________________________________
+max_pooling1d_17 (MaxPooling (None, None, 32)          0         
+_________________________________________________________________
+time_distributed_10 (TimeDis (None, None, 20)          660       
+_________________________________________________________________
+dense_20 (Dense)             (None, None, 1)           21        
+=================================================================
+Total params: 3,826,145
+Trainable params: 39,945
+Non-trainable params: 3,786,200
+
+F1 score on the train-dev set is 0.25
+
+
+### Propaganda classification
+
+model = Sequential()
+model.add(Embedding(num_words, EMBEDDING_DIM, weights=[embedding_matrix], trainable=False))
+model.add(Conv1D(filters=LATENT_DIM, kernel_size=5, padding="same"))
+model.add(MaxPooling1D(pool_size=3, strides=1, padding="same"))
+model.add(Conv1D(filters=LATENT_DIM, kernel_size=4, padding="same"))
+model.add(MaxPooling1D(pool_size=4, strides=1, padding="same"))
+model.add(Conv1D(filters=LATENT_DIM, kernel_size=3, padding="same"))
+model.add(GlobalMaxPool1D())
+model.add(Dropout(0.2))
+model.add(Dense(128, activation="relu"))
+model.add(Dropout(0.2))
+model.add(Dense(18, activation="softmax"))
+model.compile(
+  loss='binary_crossentropy',
+  optimizer=Adam(lr=0.01),
+  metrics=['accuracy']
+)
+
+Layer (type)                 Output Shape              Param #   
+=================================================================
+embedding_15 (Embedding)     (None, None, 200)         1359600   
+_________________________________________________________________
+conv1d_7 (Conv1D)            (None, None, 32)          32032     
+_________________________________________________________________
+max_pooling1d_3 (MaxPooling1 (None, None, 32)          0         
+_________________________________________________________________
+conv1d_8 (Conv1D)            (None, None, 32)          4128      
+_________________________________________________________________
+max_pooling1d_4 (MaxPooling1 (None, None, 32)          0         
+_________________________________________________________________
+conv1d_9 (Conv1D)            (None, None, 32)          3104      
+_________________________________________________________________
+global_max_pooling1d_10 (Glo (None, 32)                0         
+_________________________________________________________________
+dropout_19 (Dropout)         (None, 32)                0         
+_________________________________________________________________
+dense_19 (Dense)             (None, 128)               4224      
+_________________________________________________________________
+dropout_20 (Dropout)         (None, 128)               0         
+_________________________________________________________________
+dense_20 (Dense)             (None, 18)                2322      
+=================================================================
+Total params: 1,405,410
+Trainable params: 45,810
+Non-trainable params: 1,359,600
+
+F1 score on the train-dev set is 0.35
+
+## Options for further research
+
+During the brainstorming sessions, there were 2 additional ideas, which we did not have time to work on.
+1. Based task 3 on the results of task2. As result all non-propagandistics sentences could be filtered and taks 3 will focus just on finding the propagandistic phrase in a sentence which is propaganda.
+2. To replicate YOLO object detection model for this task.
